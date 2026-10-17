@@ -1,0 +1,27 @@
+{
+    "name": "jathosystems/ui",
+    "description": "Shared Blade and Livewire UI kit.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0",
+        "illuminate/view": "^12.0",
+        "livewire/livewire": "^4.0",
+        "mallardduck/blade-lucide-icons": "^1.23"
+    },
+    "autoload": {
+        "psr-4": {
+            "JathoSystems\\Ui\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "JathoSystems\\Ui\\UiServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

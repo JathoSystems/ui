@@ -15,4 +15,9 @@ return [
     'to' => 'tot',
     'of' => 'van',
     'results' => 'resultaten',
+    'confirm' => 'Bevestigen',
+    'confirm_title' => 'Weet je het zeker?',
+    'no_items' => 'Nog niets om te tonen',
+    'sort_ascending' => 'Oplopend gesorteerd',
+    'sort_descending' => 'Aflopend gesorteerd',
 ];

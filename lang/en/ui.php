@@ -15,4 +15,9 @@ return [
     'to' => 'to',
     'of' => 'of',
     'results' => 'results',
+    'confirm' => 'Confirm',
+    'confirm_title' => 'Are you sure?',
+    'no_items' => 'Nothing to show yet',
+    'sort_ascending' => 'Sorted ascending',
+    'sort_descending' => 'Sorted descending',
 ];

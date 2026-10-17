@@ -26,39 +26,57 @@
         x-data="{
             open: false,
             search: '',
-            activeIndex: 0,
+            activeValue: null,
             panelWidth: 0,
             selectedValue: @js($value !== null ? (string) $value : ''),
             options: @js($formattedOptions),
             placeholder: @js($placeholder),
             get selectedLabel() {
-                const value = this.selectedValue === null || this.selectedValue === undefined ? '' : String(this.selectedValue);
-                return this.options.find(o => o.value === value)?.label ?? this.placeholder;
+                return this.options.find(o => o.value === this.normalize(this.selectedValue))?.label ?? this.placeholder;
             },
-            get filteredOptions() {
-                if (! this.search) return this.options;
-                const q = this.search.toLowerCase();
-                return this.options.filter(o => o.label.toLowerCase().includes(q));
+            get hasMatches() {
+                return this.options.some(o => this.matches(o.label));
+            },
+            normalize(value) {
+                return value === null || value === undefined ? '' : String(value);
+            },
+            matches(optionLabel) {
+                return this.search === '' || optionLabel.toLowerCase().includes(this.search.toLowerCase());
+            },
+            visibleOptions() {
+                return this.options.filter(o => this.matches(o.label));
             },
             openDropdown() {
                 this.panelWidth = this.$refs.trigger.offsetWidth;
                 this.open = true;
-                this.activeIndex = 0;
-                this.$nextTick(() => this.$refs.searchInput.focus());
+                this.activeValue = this.normalize(this.selectedValue);
+                this.$nextTick(() => {
+                    this.$refs.searchInput.focus();
+                    this.scrollToActive();
+                });
             },
             close() {
                 this.open = false;
                 this.search = '';
             },
             move(step) {
-                const count = this.filteredOptions.length;
-                if (count === 0) return;
-                this.activeIndex = (this.activeIndex + step + count) % count;
-                this.$nextTick(() => this.$refs.list.children[this.activeIndex + 1]?.scrollIntoView({ block: 'nearest' }));
+                const visible = this.visibleOptions();
+                if (visible.length === 0) return;
+                const current = visible.findIndex(o => o.value === this.activeValue);
+                const next = current === -1 ? 0 : (current + step + visible.length) % visible.length;
+                this.activeValue = visible[next].value;
+                this.$nextTick(() => this.scrollToActive());
             },
-            select(option) {
-                if (! option) return;
-                this.selectedValue = option.value === '' ? null : option.value;
+            scrollToActive() {
+                this.$refs.list.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' });
+            },
+            selectActive() {
+                const visible = this.visibleOptions();
+                const active = visible.find(o => o.value === this.activeValue) ?? visible[0];
+                if (active) this.select(active.value);
+            },
+            select(value) {
+                this.selectedValue = value === '' ? null : value;
                 this.close();
                 this.$refs.trigger.focus();
             },
@@ -100,10 +118,10 @@
                 <input
                     x-model="search"
                     x-ref="searchInput"
-                    @input="activeIndex = 0"
+                    @input="activeValue = visibleOptions()[0]?.value ?? null"
                     @keydown.arrow-down.prevent="move(1)"
                     @keydown.arrow-up.prevent="move(-1)"
-                    @keydown.enter.prevent="select(filteredOptions[activeIndex])"
+                    @keydown.enter.prevent="selectActive()"
                     @keydown.tab="close()"
                     type="text"
                     placeholder="{{ $placeholder }}"
@@ -111,18 +129,19 @@
                 >
             </div>
             <div x-ref="list" role="listbox" class="max-h-48 overflow-y-auto">
-                <template x-for="(option, index) in filteredOptions" :key="option.value">
+                @foreach ($formattedOptions as $option)
                     <div
                         role="option"
-                        :aria-selected="option.value === String(selectedValue ?? '')"
-                        @click="select(option)"
-                        @mouseenter="activeIndex = index"
-                        :class="{ 'bg-gray-100 dark:bg-zinc-700': index === activeIndex }"
+                        x-show="matches(@js($option['label']))"
+                        :data-active="activeValue === @js($option['value']) ? '' : null"
+                        :aria-selected="normalize(selectedValue) === @js($option['value'])"
+                        @click="select(@js($option['value']))"
+                        @mouseenter="activeValue = @js($option['value'])"
+                        :class="{ 'bg-gray-100 dark:bg-zinc-700': activeValue === @js($option['value']) }"
                         class="px-3 py-2 cursor-pointer text-sm text-black dark:text-white"
-                        x-text="option.label"
-                    ></div>
-                </template>
-                <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    >{{ $option['label'] }}</div>
+                @endforeach
+                <div x-show="! hasMatches" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                     {{ __('ui::ui.no_results') }}
                 </div>
             </div>

@@ -9,6 +9,8 @@
             dropdownRight: 'auto',
             _onScrollOrResize: null,
             init() {
+                this.$watch('open', () => this.syncTriggerState());
+                this.$nextTick(() => this.syncTriggerState());
                 this._onScrollOrResize = () => { if (this.open) this.updatePosition(); };
                 window.addEventListener('scroll', this._onScrollOrResize, true);
                 window.addEventListener('resize', this._onScrollOrResize);
@@ -39,19 +41,30 @@
                     this.dropdownRight = 'auto';
                 }
             },
+            triggerControl() {
+                return this.$refs.trigger.querySelector('button, a[href], [tabindex]');
+            },
+            syncTriggerState() {
+                const control = this.triggerControl();
+                if (! control) return;
+                control.setAttribute('aria-haspopup', 'true');
+                control.setAttribute('aria-expanded', this.open ? 'true' : 'false');
+            },
             openDropdown() {
                 this.open = true;
                 this.$nextTick(() => this.updatePosition());
             },
-            closeDropdown() {
+            closeDropdown(returnFocus = false) {
                 this.open = false;
+                if (returnFocus) this.triggerControl()?.focus();
             }
         }"
         @click.outside="closeDropdown()"
-        @keydown.escape="if (open) { $event.stopPropagation(); closeDropdown(); }"
+        @keydown.escape="if (open) { $event.stopPropagation(); closeDropdown(true); }"
+        @focusout="if (open && $event.relatedTarget && ! $el.contains($event.relatedTarget)) closeDropdown()"
         @modal:opened.window="closeDropdown()"
     >
-        <div x-ref="trigger" :aria-expanded="open" aria-haspopup="true" @click="open ? closeDropdown() : openDropdown()" class="cursor-pointer {{ $triggerClass }}">
+        <div x-ref="trigger" @click="open ? closeDropdown() : openDropdown()" class="cursor-pointer {{ $triggerClass }}">
             {{ $trigger }}
         </div>
 

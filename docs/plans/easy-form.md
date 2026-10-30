@@ -13,6 +13,16 @@ A one-liner form that creates or updates an Eloquent model from its schema:
 
 {{-- optional explicit schema, otherwise Post::formSchema() is used --}}
 <livewire:ui::easy-form :model-class="App\Models\Post::class" :schema="['title' => 'text']" />
+
+{{-- custom layout: slot content replaces the generated fields --}}
+<livewire:ui::easy-form :model-class="App\Models\Post::class" :model="$post">
+    <x-ui::input name="form.data.title" label="Title" wire:model="form.data.title" />
+    <x-ui::textarea name="form.data.body" label="Body" wire:model="form.data.body" />
+
+    <x-slot:actions>
+        <x-ui::button type="submit" color="primary">Publish</x-ui::button>
+    </x-slot:actions>
+</livewire:ui::easy-form>
 ```
 
 ## What already exists (reuse, don't rewrite)
@@ -31,8 +41,13 @@ A one-liner form that creates or updates an Eloquent model from its schema:
    - `mount(string $modelClass, ?Model $model = null, array $schema = [])`
    - Throw if `$modelClass` isn't a `Model` subclass, or if `$model` is given and isn't an instance of `$modelClass`.
    - Edit mode = `$model?->exists`. Call `$this->form->for($model ?? $modelClass, $schema)`.
-   - Render `<x-ui::form :fields="$form->fields" :editing="$form->isEditing()" submit="save" />`.
+   - Render `<x-ui::form :fields="$form->fields" :editing="$form->isEditing()" submit="save">`, forwarding the
+     default slot and the `actions` slot (Livewire 4 slots work like Blade component slots).
    - Optionally make `model-form` delegate to the same logic later; out of scope for v1.
+
+   Slot forwarding gotcha: `form.blade.php` uses `$slot->isNotEmpty()`, which is true for whitespace-only content,
+   so forwarding an empty slot would render no fields at all. Switch it to `$slot->hasActualContent()`, and only
+   forward `actions` when it's set (`@isset($actions) <x-slot:actions>{{ $actions }}</x-slot:actions> @endisset`).
 
 2. **Mass-assignment guard** (the `is_admin=true` check), in `ModelForm::save()` / `savableFields()`:
    - Writable = schema fields ∩ `$model->getFillable()` (explicit `$fillable`, **not** `isFillable()`, which is
@@ -46,19 +61,34 @@ A one-liner form that creates or updates an Eloquent model from its schema:
    - `hidden` fields: their value comes from the client, so keep the value server-side. Store hidden defaults in a
      `#[Locked] array $fixed` and merge them in `save()` instead of reading them from `$data`.
 
-3. **Authorization**: before saving, if a policy exists for the model, run `Gate::authorize('create', $modelClass)`
+3. **Custom forms** (slot content in `easy-form`, or your own component with `public ModelForm $form`):
+   - All guards live in `ModelForm`, so they apply no matter how the fields are rendered.
+   - The schema (or `formSchema()`/`formRules()`) is still the allowlist: an `x-ui` element bound to
+     `form.data.foo` with no schema entry is silently not saved. With a custom layout, the schema only defines
+     what's writable + its rules; it's not rendered.
+   - Hand-written `<input type="hidden" wire:model="form.data.user_id">` is client-controlled. Document that
+     fixed values (owner, tenant, parent id) go in a schema `hidden` field (server-side, see step 2) or are set in
+     the component, never through a bound input.
+   - Dev ergonomics: in local/debug, log a warning when a bound `form.data.*` key that isn't in the schema shows up
+     in `$data` on save, so "why isn't my field saving" is obvious. Optional.
+
+4. **Authorization**: before saving, if a policy exists for the model, run `Gate::authorize('create', $modelClass)`
    or `Gate::authorize('update', $model)`. Skip silently when no policy is registered (opt-in via
    `Gate::getPolicyFor()`).
 
-4. **Tests** (needs `orchestra/testbench` + `pestphp/pest` as dev deps; none exist yet):
+5. **Tests** (needs `orchestra/testbench` + `pestphp/pest` as dev deps; none exist yet):
    - create mode saves, edit mode updates the existing row.
    - `$set('form.data.is_admin', true)` then `save` → `is_admin` stays false, even with `$guarded = []`.
    - tampering with a hidden field value has no effect.
    - tampering with locked `modelId`/`modelClass` throws.
    - schema with a deny-listed field throws in `mount`.
    - policy denies → 403.
+   - custom slot layout renders the slot instead of generated fields; no slot (or whitespace) renders the schema.
+   - custom layout + `$set('form.data.is_admin', true)` → still not saved; a bound field not in the schema → not saved.
+   - `actions` slot replaces the default buttons.
 
-5. **Docs**: short usage section in a README (none exists yet), including `formSchema()`, `formRules()`, `formGuarded()`.
+6. **Docs**: short usage section in a README (none exists yet), including `formSchema()`, `formRules()`, `formGuarded()`,
+   and a custom-layout example (slot + your own component with `ModelForm`).
 
 ## Out of scope
 
@@ -77,6 +107,9 @@ Relations / many-to-many fields, multi-step forms, merging `model-form` into `ea
 > explicit `getFillable()` (not `isFillable()`), apply a deny-list (primary key, timestamps, `is_admin`, `role(s)`,
 > `permissions`, `remember_token`, `email_verified_at`, plus an optional `formGuarded()` on the model), throw in
 > `for()` when the schema contains a denied field, and keep `hidden` field values server-side in a locked property.
-> Add a policy check (`create`/`update`) when a policy is registered. Set up Pest + Testbench and cover the tests
-> listed in the plan, especially the `is_admin` tampering case with `$guarded = []`. Keep changes small, commit,
-> and push to the current feature branch.
+> Add a policy check (`create`/`update`) when a policy is registered. Support custom layouts: `easy-form` forwards
+> its default slot and `actions` slot to `<x-ui::form>` (switch `form.blade.php` to `$slot->hasActualContent()` so a
+> forwarded empty slot still renders the schema fields); the schema stays the allowlist for what gets saved, and
+> hand-written hidden inputs are documented as client-controlled. Set up Pest + Testbench and cover the tests
+> listed in the plan, especially the `is_admin` tampering case with `$guarded = []`, both with generated fields and
+> with a custom slot layout. Keep changes small, commit, and push to the current feature branch.

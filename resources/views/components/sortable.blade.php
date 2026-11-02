@@ -4,8 +4,7 @@
 ])
 
 {{--
-    Drag-to-reorder list on top of Livewire 4's wire:sort.
-    The handler is called as handler($key, $position), with a zero-based position.
+    Calls handler($item, $position) with a zero-based position. With handles, only a handle starts a drag.
 
     <x-ui::sortable handler="moveItem" class="flex flex-col gap-2">
         @foreach ($items as $item)
@@ -14,8 +13,6 @@
             </x-ui::sortable.item>
         @endforeach
     </x-ui::sortable>
-
-    When any item contains a handle, only the handle starts a drag.
 --}}
 
 <{{ $as }} wire:sort="{{ $handler }}" {{ $attributes }}>

@@ -26,7 +26,7 @@ Components expose **presets** (for example `columns="3"`, `gap="md"`, `aspect="1
 | Component | Purpose | Key props |
 |---|---|---|
 | `x-ui::media` | A single image, video or YouTube embed (lite: the iframe only loads on click) | `type` (`image`/`video`/`youtube`), `src`, `youtube`, `poster`, `alt`, `width`, `height`, `aspect` (`auto`/`square`/`4:3`/`3:4`/`16:9`/`9:16`/`21:9`), `fit` (`cover`/`contain`), `autoplay`, `controls` |
-| `x-ui::carousel` + `x-ui::carousel.slide` | Scroll-snap carousel with arrows, keyboard, dots or thumbnail navigation, and autoplay | `per-view` (1/2/3), `gap` (`none`/`sm`/`md`/`lg`), `nav` (`dots`/`thumbnails`/`none`), `arrows`, `loop`, `autoplay` (ms); slide: `thumbnail` |
+| `x-ui::carousel` + `x-ui::carousel.slide` | Scroll-snap carousel with arrows, keyboard, dots or thumbnail navigation, and autoplay | `per-view` (1/2/3), `gap` (`none`/`sm`/`md`/`lg`), `nav` (`dots`/`thumbnails`/`none`), `autoplay` (ms); slide: `thumbnail` |
 | `x-ui::masonry` + `x-ui::masonry.item` | CSS-columns masonry | `columns` (2/3/4), `gap` |
 | `x-ui::media-grid` | Responsive grid | `columns` (2/3/4), `gap` |
 

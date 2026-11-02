@@ -7,14 +7,11 @@
 ])
 
 {{--
-    Button-group picker for a small set of preset values.
-
     <x-ui::segmented label="Columns" wire:model.live="settings.columns" :options="[2 => '2', 3 => '3', 4 => '4']" />
 --}}
 
 @php
-    $model = $attributes->wire('model')->value();
-    $name ??= $model ?: null;
+    $name ??= $attributes->wire('model')->value() ?: null;
     $radioName = $name ?? 'segmented-'.uniqid();
 @endphp
 
@@ -27,7 +24,7 @@
                     {{ $attributes->whereStartsWith('wire:model') }}
                     {{ $attributes->only(['disabled']) }}
                     class="peer sr-only">
-                <span class="block px-3 py-1 text-sm rounded transition-colors text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white peer-checked:bg-white peer-checked:text-black peer-checked:shadow-sm dark:peer-checked:bg-zinc-700 dark:peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed">
+                <span class="block px-3 py-1 text-sm rounded opacity-60 hover:opacity-100 peer-checked:opacity-100 peer-checked:bg-white peer-checked:shadow-sm dark:peer-checked:bg-zinc-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-disabled:cursor-not-allowed">
                     {{ $optionLabel }}
                 </span>
             </label>

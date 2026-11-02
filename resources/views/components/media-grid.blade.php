@@ -4,9 +4,6 @@
 ])
 
 {{--
-    Responsive grid for media. Give children a shared aspect (e.g. <x-ui::media aspect="square" />)
-    to keep rows even.
-
     <x-ui::media-grid columns="3" gap="md">...</x-ui::media-grid>
 
     columns: 2 | 3 | 4   gap: none | sm | md | lg

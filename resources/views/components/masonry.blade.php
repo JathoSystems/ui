@@ -4,8 +4,6 @@
 ])
 
 {{--
-    Masonry layout using CSS columns. Wrap each child in <x-ui::masonry.item>.
-
     <x-ui::masonry columns="3" gap="md">
         <x-ui::masonry.item><x-ui::media ... /></x-ui::masonry.item>
     </x-ui::masonry>

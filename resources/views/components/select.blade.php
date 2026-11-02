@@ -4,6 +4,7 @@
     'help' => null,
     'options' => [],
     'placeholder' => null,
+    'value' => null,
     'containerClass' => '',
 ])
 
@@ -25,7 +26,7 @@
             <option value="">{{ $placeholder }}</option>
         @endif
         @foreach ($options as $optionValue => $optionLabel)
-            <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+            <option value="{{ $optionValue }}" @selected($value !== null && (string) $value === (string) $optionValue)>{{ $optionLabel }}</option>
         @endforeach
         {{ $slot }}
     </select>

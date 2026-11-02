@@ -20,7 +20,7 @@
 
 <x-ui::field :name="$name" :label="$label" :help="$help" :class="$containerClass" :wraps-control="false">
     <div role="radiogroup" @if ($label) aria-label="{{ $label }}" @endif
-        class="mt-1 inline-flex flex-wrap rounded-md border bg-gray-100 dark:bg-zinc-900 p-0.5 gap-0.5">
+        class="mt-1 inline-flex w-fit flex-wrap rounded-md border bg-gray-100 dark:bg-zinc-900 p-0.5 gap-0.5">
         @foreach ($options as $optionValue => $optionLabel)
             <label class="relative cursor-pointer">
                 <input type="radio" name="{{ $radioName }}" value="{{ $optionValue }}"

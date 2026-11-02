@@ -130,7 +130,7 @@
             </template>
         </div>
     @elseif ($nav === 'thumbnails')
-        <div x-show="slides.length > 1" class="flex gap-2 mt-3 overflow-x-auto pb-1">
+        <div x-show="slides.length > 1" class="flex gap-2 mt-2 overflow-x-auto p-1">
             <template x-for="slide in slides" :key="slide.i">
                 <button type="button" @click="goTo(slide.i)"
                     :aria-label="@js(__('ui::ui.go_to_slide')) + ' ' + (slide.i + 1)"

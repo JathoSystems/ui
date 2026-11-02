@@ -20,4 +20,11 @@ return [
     'no_items' => 'Nog niets om te tonen',
     'sort_ascending' => 'Oplopend gesorteerd',
     'sort_descending' => 'Aflopend gesorteerd',
+    'play_video' => 'Video afspelen',
+    'go_to_slide' => 'Ga naar slide',
+    'browse' => 'Blader',
+    'or_drop_files' => 'of sleep bestanden hierheen',
+    'uploading' => 'Uploaden',
+    'upload_failed' => 'Uploaden mislukt. Probeer het opnieuw.',
+    'drag_to_reorder' => 'Sleep om te herordenen',
 ];

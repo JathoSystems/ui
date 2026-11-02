@@ -20,4 +20,11 @@ return [
     'no_items' => 'Nothing to show yet',
     'sort_ascending' => 'Sorted ascending',
     'sort_descending' => 'Sorted descending',
+    'play_video' => 'Play video',
+    'go_to_slide' => 'Go to slide',
+    'browse' => 'Browse',
+    'or_drop_files' => 'or drop files here',
+    'uploading' => 'Uploading',
+    'upload_failed' => 'Upload failed. Please try again.',
+    'drag_to_reorder' => 'Drag to reorder',
 ];

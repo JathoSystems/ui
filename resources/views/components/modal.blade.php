@@ -26,6 +26,7 @@
         </div>
     @endif
 
+    <template x-teleport="body" x-on:close-modal.stop="closeModal()">
     <div x-show="open"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
@@ -75,4 +76,5 @@
             </div>
         </div>
     </div>
+    </template>
 </div>

@@ -17,7 +17,7 @@
 @endphp
 
 <form wire:submit="{{ $submit }}" {{ $attributes }}>
-    @if ($slot->isNotEmpty())
+    @if ($slot->hasActualContent())
         {{ $slot }}
     @else
         @foreach ($fields as $name => $field)
@@ -52,7 +52,6 @@
                     @break
 
                 @case('hidden')
-                    <input type="hidden" wire:model="{{ $model }}" wire:key="field-{{ $name }}">
                     @break
 
                 @default

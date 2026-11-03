@@ -5,6 +5,7 @@ namespace JathoSystems\Ui\Livewire\Forms;
 use BackedEnum;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -32,8 +33,25 @@ class ModelForm extends Form
     #[Locked]
     public array $fields = [];
 
+    /**
+     * Values of `hidden` schema fields. Kept server-side so the client can't change them.
+     *
+     * @var array<string, mixed>
+     */
+    #[Locked]
+    public array $hiddenData = [];
+
     /** @var array<string, mixed> */
     public array $data = [];
+
+    /**
+     * Attributes that are never written by a form, regardless of $fillable.
+     *
+     * @var list<string>
+     */
+    public const DENIED_ATTRIBUTES = [
+        'is_admin', 'role', 'roles', 'permissions', 'remember_token', 'email_verified_at',
+    ];
 
     /**
      * @param  Model|class-string<Model>  $model
@@ -53,10 +71,18 @@ class ModelForm extends Form
             $schema = $model->formSchema();
         }
 
+        $fields = FormSchema::normalize($schema);
+
+        if ($denied = array_values(array_intersect(array_keys($fields), $this->deniedAttributes($model)))) {
+            throw new InvalidArgumentException(sprintf(
+                'Form schema for [%s] contains protected attribute(s) [%s].', $model::class, implode(', ', $denied),
+            ));
+        }
+
         $this->modelClass = $model::class;
         $this->modelId = $model->exists ? $model->getKey() : null;
-        $this->fields = FormSchema::normalize($schema);
-        $this->data = $this->initialData($model);
+        $this->fields = $fields;
+        $this->fillData($model);
 
         return $this;
     }
@@ -83,12 +109,16 @@ class ModelForm extends Form
         $model = $this->modelClass ? new $this->modelClass : null;
         if ($model && method_exists($model, 'formRules')) {
             foreach ($model->formRules() as $name => $fieldRules) {
+                if ($this->isHiddenField($name)) {
+                    continue;
+                }
+
                 $rules["data.{$name}"] = $fieldRules;
             }
         }
 
         foreach ($this->fields as $name => $field) {
-            if ($field['rules'] !== null) {
+            if ($field['rules'] !== null && $field['type'] !== 'hidden') {
                 $rules["data.{$name}"] = $field['rules'];
             }
         }
@@ -112,18 +142,20 @@ class ModelForm extends Form
 
     public function save(): Model
     {
+        $model = $this->model();
+        $this->authorize($model);
+
         $this->validate();
 
-        $model = $this->model();
         $attributes = [];
         $replacedFiles = [];
 
         foreach ($this->savableFields() as $name) {
-            $value = $this->data[$name] ?? null;
-
-            if (! $model->isFillable($name)) {
+            if (! $this->isWritable($model, $name)) {
                 continue;
             }
+
+            $value = $this->isHiddenField($name) ? ($this->hiddenData[$name] ?? null) : ($this->data[$name] ?? null);
 
             if ($this->isFileField($name)) {
                 if (! $value instanceof TemporaryUploadedFile) {
@@ -155,9 +187,9 @@ class ModelForm extends Form
         $this->getComponent()->dispatch('close-modal');
 
         if ($wasEditing) {
-            $this->data = $this->initialData($model->refresh());
+            $this->fillData($model->refresh());
         } else {
-            $this->data = $this->initialData(new $model);
+            $this->fillData(new $model);
             $this->resetErrorBag();
         }
 
@@ -165,11 +197,65 @@ class ModelForm extends Form
     }
 
     /**
+     * Authorize the save against the model's policy, when one is registered.
+     */
+    protected function authorize(Model $model): void
+    {
+        if (Gate::getPolicyFor($model) === null) {
+            return;
+        }
+
+        $model->exists
+            ? Gate::authorize('update', $model)
+            : Gate::authorize('create', $model::class);
+    }
+
+    protected function isWritable(Model $model, string $name): bool
+    {
+        return in_array($name, $model->getFillable(), true)
+            && ! in_array($name, $this->deniedAttributes($model), true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function deniedAttributes(Model $model): array
+    {
+        $denied = [...self::DENIED_ATTRIBUTES, $model->getKeyName(), $model->getCreatedAtColumn(), $model->getUpdatedAtColumn()];
+
+        if (method_exists($model, 'getDeletedAtColumn')) {
+            $denied[] = $model->getDeletedAtColumn();
+        }
+
+        if (method_exists($model, 'formGuarded')) {
+            $denied = [...$denied, ...$model->formGuarded()];
+        }
+
+        return array_values(array_unique(array_filter($denied, 'is_string')));
+    }
+
+    protected function fillData(Model $model): void
+    {
+        $this->data = [];
+        $this->hiddenData = [];
+
+        foreach ($this->initialData($model) as $name => $value) {
+            if ($this->isHiddenField($name)) {
+                $this->hiddenData[$name] = $value;
+            } else {
+                $this->data[$name] = $value;
+            }
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function initialData(Model $model): array
     {
-        $names = $this->fields !== [] ? array_keys($this->fields) : $model->getFillable();
+        $names = $this->fields !== []
+            ? array_keys($this->fields)
+            : array_values(array_diff($model->getFillable(), $this->deniedAttributes($model)));
         $data = [];
 
         foreach ($names as $name) {
@@ -198,7 +284,8 @@ class ModelForm extends Form
     }
 
     /**
-     * Only validated fields are written, so a client adding extra keys to $data can't fill unvalidated attributes.
+     * Only schema fields (or, without a schema, validated fields) are written, so a client adding extra keys
+     * to $data can't fill other attributes. isWritable() narrows this to fillable, non-denied attributes.
      *
      * @return list<string>
      */
@@ -209,6 +296,11 @@ class ModelForm extends Form
         }
 
         return array_map(fn (string $key): string => Str::after($key, 'data.'), array_keys($this->rules()));
+    }
+
+    protected function isHiddenField(string $name): bool
+    {
+        return ($this->fields[$name]['type'] ?? null) === 'hidden';
     }
 
     protected function isFileField(string $name): bool

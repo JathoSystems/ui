@@ -12,6 +12,7 @@ use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Form;
+use Throwable;
 
 /**
  * Generic create/update form for an Eloquent model.
@@ -69,6 +70,12 @@ class ModelForm extends Form
 
         if ($schema === [] && method_exists($model, 'formSchema')) {
             $schema = $model->formSchema();
+        }
+
+        if ($schema === []) {
+            foreach (array_diff($model->getFillable(), $this->deniedAttributes($model)) as $name) {
+                $schema[$name] = $this->guessFieldType($model, $name);
+            }
         }
 
         $fields = FormSchema::normalize($schema);
@@ -145,7 +152,9 @@ class ModelForm extends Form
         $model = $this->model();
         $this->authorize($model);
 
-        $this->validate();
+        if ($this->rules() !== []) {
+            $this->validate();
+        }
 
         $attributes = [];
         $replacedFiles = [];
@@ -296,6 +305,28 @@ class ModelForm extends Form
         }
 
         return array_map(fn (string $key): string => Str::after($key, 'data.'), array_keys($this->rules()));
+    }
+
+    /**
+     * Pick an input type for a fillable attribute from its database column (falls back to text).
+     */
+    protected function guessFieldType(Model $model, string $name): string
+    {
+        try {
+            $column = strtolower($model->getConnection()->getSchemaBuilder()->getColumnType($model->getTable(), $name));
+        } catch (Throwable) {
+            return 'text';
+        }
+
+        return match (true) {
+            in_array($column, ['text', 'mediumtext', 'longtext', 'tinytext', 'json', 'jsonb'], true) => 'textarea',
+            in_array($column, ['boolean', 'bool'], true) => 'checkbox',
+            $column === 'date' => 'date',
+            str_starts_with($column, 'datetime') || str_starts_with($column, 'timestamp') => 'datetime-local',
+            $column === 'time' => 'time',
+            in_array($column, ['integer', 'int', 'bigint', 'smallint', 'tinyint', 'decimal', 'float', 'double', 'real', 'numeric'], true) => 'number',
+            default => 'text',
+        };
     }
 
     protected function isHiddenField(string $name): bool

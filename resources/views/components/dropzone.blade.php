@@ -54,13 +54,13 @@
         @dragover.prevent="dragging = true"
         @dragleave.prevent="dragging = false"
         @drop.prevent="drop($event.dataTransfer.files)"
-        class="mt-1"
+        class="relative mt-1"
     >
         <input type="file" id="{{ $inputId }}" x-ref="input" @change="select($event.target)"
             @if ($inputName) name="{{ $inputName }}" @endif
             @if ($multiple) multiple @endif
             @if ($accept) accept="{{ $accept }}" @endif
-            {{ $attributes->except(['multiple', 'accept'])->class('peer sr-only') }}>
+            {{ $attributes->except(['multiple', 'accept'])->class('peer sr-only top-0 left-0') }}>
 
         <label for="{{ $inputId }}"
             :class="dragging && 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'"
